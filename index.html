@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#FDFBF7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CJ 查單">
+<title>CJ Studio · 查單</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FDFBF7; --card:#fff; --ink:#3d3a36; --soft:#9b938a; --faint:#C9C2B9;
+    --seal:#8C7B6C; --line:#EDE7DF;
+    --blue:#2f5d8a; --orange:#c2703a; --green:#1a7f4b; --red:#a33028;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font-family:"Noto Sans TC",system-ui,sans-serif;font-size:15px;line-height:1.6;
+       padding-bottom:env(safe-area-inset-bottom)}
+  .wrap{max-width:900px;margin:0 auto;padding:16px 14px 60px}
+
+  /* ── 登入 ── */
+  #login{max-width:340px;margin:16vh auto;padding:0 20px;text-align:center}
+  #login h1{font-family:"Noto Serif TC",serif;font-weight:500;font-style:italic;
+            font-size:30px;color:var(--seal);margin:0 0 6px}
+  #login p{color:var(--soft);font-size:13px;margin:0 0 26px}
+  #login input{width:100%;padding:14px 16px;margin-bottom:10px;border-radius:12px;
+               border:1px solid var(--line);background:var(--card);font:inherit;outline:none}
+  #login input:focus{border-color:var(--seal)}
+  #login button{width:100%;padding:14px;border:0;border-radius:12px;background:var(--seal);
+                color:#fff;font:inherit;font-weight:700;cursor:pointer}
+  #login button:disabled{opacity:.5}
+  #loginMsg{margin-top:14px;font-size:13px;font-weight:700;color:var(--red);min-height:20px}
+
+  /* ── 查詢 ── */
+  header{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
+  h2{font-family:"Noto Serif TC",serif;font-weight:500;font-style:italic;
+     font-size:22px;color:var(--seal);margin:0}
+  .who{margin-left:auto;font-size:11px;color:var(--faint)}
+  .who button{background:none;border:0;color:var(--faint);font:inherit;
+              text-decoration:underline;cursor:pointer;padding:0 0 0 8px}
+
+  .searchbar{position:sticky;top:0;background:var(--bg);padding:8px 0 10px;z-index:5}
+  input[type=search]{width:100%;padding:13px 18px;border-radius:999px;border:1px solid var(--line);
+       background:var(--card);font:inherit;font-weight:700;outline:none;font-size:16px}
+  input[type=search]:focus{border-color:var(--seal)}
+
+  .meter{margin:4px 4px 14px;font-size:12px;color:var(--soft);min-height:18px}
+  .ms{font-family:"Noto Serif TC",serif;font-size:17px;font-weight:700;font-style:italic;color:var(--seal)}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+        padding:13px 15px;margin-bottom:9px}
+  .row1{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+  .cust{font-size:17px;font-weight:700}
+  .code{font-size:11px;color:var(--faint)}
+  .no{font-size:11px;color:var(--faint);font-family:ui-monospace,monospace;margin-left:auto}
+  .meta{display:flex;gap:6px;flex-wrap:wrap;margin:7px 0 9px}
+  .chip{font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:999px;
+        background:#f6f2ec;color:var(--soft)}
+  .chip.ws{background:#f0eaf5;color:#6b4e8a}
+  .chip.free{background:#e8f5ee;color:var(--green)}
+  .chip.s待出貨{background:#fdf0e7;color:var(--orange)}
+  .chip.s部分出貨{background:#eef3f8;color:var(--blue)}
+  .chip.s已出貨{background:#e8f5ee;color:var(--green)}
+
+  .money{display:flex;gap:16px;flex-wrap:wrap;padding:9px 0;border-top:1px solid var(--line)}
+  .money>div{min-width:70px}
+  .k{font-size:10px;color:var(--soft);font-weight:700}
+  .v{font-family:"Noto Serif TC",serif;font-style:italic;font-weight:700;font-size:17px}
+  .v.total{color:var(--blue)} .v.bal{color:var(--orange)} .v.paid{color:var(--green)}
+
+  .items{border-top:1px solid var(--line);padding-top:7px;font-size:13px}
+  .item{display:flex;gap:8px;align-items:baseline;padding:3px 0;color:var(--soft)}
+  .item .n{color:var(--ink);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .item .st{font-size:10px;padding:1px 7px;border-radius:999px;background:#f6f2ec;flex:none}
+  .item.oos .n{text-decoration:line-through;color:var(--faint)}
+
+  .empty{text-align:center;color:var(--faint);padding:44px 0;font-weight:700}
+  .err{background:#fdf0ef;border:1px solid #f3d5d2;color:var(--red);
+       padding:12px 14px;border-radius:12px;font-size:13px;font-weight:700}
+  .hint{font-size:11.5px;color:var(--faint);margin-top:24px;border-top:1px solid var(--line);
+        padding-top:12px;line-height:1.8}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <h1>CJ Studio</h1>
+  <p>查單系統</p>
+  <input type="email" id="email" placeholder="Email" autocomplete="username" inputmode="email">
+  <input type="password" id="pw" placeholder="密碼" autocomplete="current-password">
+  <button id="btnLogin">登入</button>
+  <div id="loginMsg"></div>
+</div>
+
+<div class="wrap" id="app" hidden>
+  <header>
+    <h2>查單</h2>
+    <span class="who"><span id="me"></span><button id="btnOut">登出</button></span>
+  </header>
+
+  <div class="searchbar">
+    <input type="search" id="q" placeholder="客人 / 單號 / 商品…" autocomplete="off">
+  </div>
+
+  <div class="meter" id="meter"></div>
+  <div id="out"><div class="empty">輸入關鍵字開始搜尋</div></div>
+
+  <p class="hint">
+    唯讀查詢，這裡看到的資料不會被修改。<br>
+    資料來自 Supabase，與正式 ERP 同步。
+  </p>
+</div>
+
+<script>
+const SB_URL = 'https://antwrezmnwxkgfofmbuh.supabase.co';
+const SB_KEY = 'sb_publishable_-f1hpe2CtT5jokS6Nr7c9A_lwWKZvAa';
+const TOKEN_KEY = 'cj_sb_session';
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const money = n => '$' + Math.round(Number(n) || 0).toLocaleString();
+const safe = s => String(s).replace(/[,()*]/g, ' ').trim();
+
+let session = null;
+try{ session = JSON.parse(localStorage.getItem(TOKEN_KEY) || 'null'); }catch(e){}
+
+// ── 登入 ────────────────────────────────────────────
+async function login(email, pw){
+  const r = await fetch(SB_URL + '/auth/v1/token?grant_type=password', {
+    method: 'POST',
+    headers: { apikey: SB_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password: pw })
+  });
+  const d = await r.json();
+  if(!r.ok) throw new Error(d.error_description || d.msg || d.message || '登入失敗');
+  return d;
+}
+
+async function refresh(){
+  if(!session || !session.refresh_token) return false;
+  try{
+    const r = await fetch(SB_URL + '/auth/v1/token?grant_type=refresh_token', {
+      method: 'POST',
+      headers: { apikey: SB_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: session.refresh_token })
+    });
+    if(!r.ok) return false;
+    session = await r.json();
+    localStorage.setItem(TOKEN_KEY, JSON.stringify(session));
+    return true;
+  }catch(e){ return false; }
+}
+
+function showApp(){
+  $('login').hidden = true;
+  $('app').hidden = false;
+  $('me').textContent = (session && session.user && session.user.email) || '';
+  $('q').focus();
+}
+function showLogin(msg){
+  $('app').hidden = true;
+  $('login').hidden = false;
+  $('loginMsg').textContent = msg || '';
+}
+
+$('btnLogin').onclick = async () => {
+  const b = $('btnLogin');
+  b.disabled = true; $('loginMsg').textContent = '';
+  try{
+    session = await login($('email').value.trim(), $('pw').value);
+    localStorage.setItem(TOKEN_KEY, JSON.stringify(session));
+    $('pw').value = '';
+    showApp();
+  }catch(e){
+    $('loginMsg').textContent = e.message;
+  }finally{ b.disabled = false; }
+};
+$('pw').addEventListener('keydown', e => { if(e.key === 'Enter') $('btnLogin').click(); });
+$('btnOut').onclick = () => { localStorage.removeItem(TOKEN_KEY); session = null; showLogin(); };
+
+// ── 查詢 ────────────────────────────────────────────
+async function get(path, retried){
+  const r = await fetch(SB_URL + '/rest/v1/' + path, {
+    headers: { apikey: SB_KEY, Authorization: 'Bearer ' + (session && session.access_token) }
+  });
+  if(r.status === 401 && !retried){
+    // token 過期就自動續期，使用者不用重登
+    if(await refresh()) return get(path, true);
+    showLogin('登入已過期，請重新登入');
+    throw new Error('請重新登入');
+  }
+  if(!r.ok) throw new Error(r.status + ' ' + (await r.text()).slice(0, 160));
+  return r.json();
+}
+
+const FIELDS = 'id,order_no,created_date,order_type,payment_method,free_ship,shipping_status,'
+             + 'total_amount,deposit_due,balance_due,deposit_paid,'
+             + 'customers(display_name,code),'
+             + 'order_items(name,spec,qty,unit_price,stage)';
+
+async function search(kw){
+  const k = encodeURIComponent(safe(kw));
+  if(!k) return { rows: [], ms: 0 };
+  const t0 = performance.now();
+
+  const [byNo, custs, items] = await Promise.all([
+    get(`orders?select=${FIELDS}&order_no=ilike.*${k}*&limit=40`),
+    get(`customers?select=id&display_name=ilike.*${k}*&limit=40`),
+    get(`order_items?select=order_id&name=ilike.*${k}*&limit=200`)
+  ]);
+  const cids = [...new Set(custs.map(c => c.id))];
+  const oids = [...new Set(items.map(i => i.order_id))].slice(0, 120);
+  const extra = await Promise.all([
+    cids.length ? get(`orders?select=${FIELDS}&customer_id=in.(${cids.join(',')})&order=created_date.desc&limit=40`) : [],
+    oids.length ? get(`orders?select=${FIELDS}&id=in.(${oids.join(',')})&order=created_date.desc&limit=40`) : []
+  ]);
+
+  const seen = new Set(), rows = [];
+  [byNo, ...extra].flat().forEach(o => { if(!seen.has(o.id)){ seen.add(o.id); rows.push(o); } });
+  rows.sort((a, b) => String(b.created_date).localeCompare(String(a.created_date)));
+  return { rows, ms: Math.round(performance.now() - t0) };
+}
+
+function card(o){
+  const c = o.customers || {};
+  const all = o.order_items || [];
+  const items = all.slice(0, 6);
+  const more = all.length - items.length;
+  const settled = o.shipping_status === '已出貨';
+  return `<div class="card">
+    <div class="row1">
+      <span class="cust">${esc(c.display_name || '—')}</span>
+      ${c.code ? `<span class="code">ID:${esc(c.code)}</span>` : ''}
+      <span class="no">${esc(o.order_no)}</span>
+    </div>
+    <div class="meta">
+      <span class="chip">${esc(o.created_date)}</span>
+      <span class="chip s${esc(o.shipping_status)}">${esc(o.shipping_status)}</span>
+      ${o.order_type === '批發' ? '<span class="chip ws">批發</span>' : ''}
+      ${o.free_ship ? '<span class="chip free">滿額免運</span>' : ''}
+    </div>
+    <div class="money">
+      <div><div class="k">訂單總額</div><div class="v total">${money(o.total_amount)}</div></div>
+      <div><div class="k">應收訂金</div><div class="v">${money(o.deposit_due)}</div></div>
+      <div><div class="k">已收訂金</div><div class="v paid">${money(o.deposit_paid)}</div></div>
+      <div><div class="k">${settled ? '尾款' : '應收尾款'}</div>
+           <div class="v bal">${settled ? '已結清' : money(o.balance_due)}</div></div>
+    </div>
+    <div class="items">
+      ${items.map(i => `<div class="item ${i.stage === '斷貨' ? 'oos' : ''}">
+        <span class="n">${esc(i.name)}${i.spec ? ' (' + esc(i.spec) + ')' : ''}</span>
+        <span>×${i.qty}</span><span>${money(i.qty * i.unit_price)}</span>
+        <span class="st">${esc(i.stage)}</span></div>`).join('')}
+      ${more > 0 ? `<div class="item"><span class="n">…另有 ${more} 項</span></div>` : ''}
+    </div>
+  </div>`;
+}
+
+let seq = 0, timer;
+async function run(){
+  const kw = $('q').value.trim();
+  const mine = ++seq;
+  if(!kw){ $('out').innerHTML = '<div class="empty">輸入關鍵字開始搜尋</div>'; $('meter').innerHTML = ''; return; }
+  try{
+    const { rows, ms } = await search(kw);
+    if(mine !== seq) return;
+    $('meter').innerHTML = `找到 <b>${rows.length}</b> 張 · <span class="ms">${ms}ms</span>`;
+    $('out').innerHTML = rows.length ? rows.map(card).join('') : '<div class="empty">沒有符合的訂單</div>';
+  }catch(e){
+    if(mine !== seq) return;
+    $('meter').innerHTML = '';
+    $('out').innerHTML = `<div class="err">查詢失敗：${esc(e.message)}</div>`;
+  }
+}
+$('q').addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(run, 120); });
+
+// 開頁時若已有登入紀錄，先續期再進主畫面
+(async () => {
+  if(session && session.refresh_token && await refresh()) showApp();
+  else showLogin();
+})();
+</script>
+</body>
+</html>
