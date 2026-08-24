@@ -48,7 +48,21 @@
        background:var(--card);font:inherit;font-weight:700;outline:none;font-size:16px}
   input[type=search]:focus{border-color:var(--seal)}
 
+  .tabs{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;-webkit-overflow-scrolling:touch}
+  .tabs button{flex:none;padding:7px 14px;border-radius:999px;border:1px solid var(--line);
+       background:var(--card);color:var(--soft);font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
+  .tabs button[aria-pressed=true]{background:var(--seal);color:#fff;border-color:var(--seal)}
+  .tabs .n{opacity:.6;margin-left:4px;font-size:11px}
+
   .meter{margin:4px 4px 14px;font-size:12px;color:var(--soft);min-height:18px}
+  .gap{font-size:11px;font-weight:700;color:var(--orange);background:#fdf0e7;
+       padding:2px 9px;border-radius:999px}
+  .stages{display:flex;gap:4px;flex-wrap:wrap;margin-top:2px}
+  .sg{font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:#f6f2ec;color:var(--soft)}
+  .sg.待下訂{background:#fdf0e7;color:var(--orange)}
+  .sg.已抵台,.sg.備貨中{background:#eef3f8;color:var(--blue)}
+  .sg.已出貨{background:#e8f5ee;color:var(--green)}
+  .sg.斷貨{background:#fdf0ef;color:var(--red)}
   .ms{font-family:"Noto Serif TC",serif;font-size:17px;font-weight:700;font-style:italic;color:var(--seal)}
 
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
@@ -106,8 +120,16 @@
     <input type="search" id="q" placeholder="客人 / 單號 / 商品…" autocomplete="off">
   </div>
 
+  <div class="tabs" id="tabs">
+    <button data-t="todo" aria-pressed="true">待處理</button>
+    <button data-t="ship">待出貨</button>
+    <button data-t="dep">未收訂金</button>
+    <button data-t="arrived">可出貨</button>
+    <button data-t="all">全部</button>
+  </div>
+
   <div class="meter" id="meter"></div>
-  <div id="out"><div class="empty">輸入關鍵字開始搜尋</div></div>
+  <div id="out"><div class="empty">載入中…</div></div>
 
   <p class="hint">
     唯讀查詢，這裡看到的資料不會被修改。<br>
@@ -202,6 +224,31 @@ const FIELDS = 'id,order_no,created_date,order_type,payment_method,free_ship,shi
              + 'customers(display_name,code),'
              + 'order_items(name,spec,qty,unit_price,stage)';
 
+// 各分頁籤的伺服器端條件。放在資料庫做篩選，不是撈回來再濾 ——
+// 這樣不管訂單累積到幾萬張，速度都一樣。
+const TAB_FILTER = {
+  todo:    '&shipping_status=neq.已出貨',
+  ship:    '&shipping_status=eq.待出貨',
+  dep:     '&shipping_status=neq.已出貨',      // 訂金缺口在前端算（產生欄位無法直接比大小）
+  arrived: '&shipping_status=neq.已出貨',
+  all:     ''
+};
+let tab = 'todo';
+
+async function browse(){
+  const t0 = performance.now();
+  const rows = await get(`orders?select=${FIELDS}${TAB_FILTER[tab]}&order=created_date.desc&limit=60`);
+  return { rows: applyTab(rows), ms: Math.round(performance.now() - t0) };
+}
+
+function applyTab(rows){
+  if(tab === 'dep')     return rows.filter(o => (Number(o.deposit_due) || 0) - (Number(o.deposit_paid) || 0) > 0);
+  if(tab === 'arrived') return rows.filter(o => (o.order_items || []).some(i => i.stage === '已抵台' || i.stage === '備貨中'));
+  if(tab === 'todo')    return rows.filter(o =>
+    o.shipping_status !== '已出貨' || (Number(o.deposit_due) || 0) - (Number(o.deposit_paid) || 0) > 0);
+  return rows;
+}
+
 async function search(kw){
   const k = encodeURIComponent(safe(kw));
   if(!k) return { rows: [], ms: 0 };
@@ -228,6 +275,13 @@ async function search(kw){
 function card(o){
   const c = o.customers || {};
   const all = o.order_items || [];
+  // 還差多少訂金 —— 這是你決定要不要催收的依據
+  const gap = Math.max(0, (Number(o.deposit_due) || 0) - (Number(o.deposit_paid) || 0));
+  // 商品階段摘要：一眼看出這張單卡在哪個環節
+  const byStage = {};
+  all.forEach(i => { byStage[i.stage] = (byStage[i.stage] || 0) + (Number(i.qty) || 1); });
+  const stages = Object.keys(byStage)
+    .map(k => `<span class="sg ${esc(k)}">${esc(k)} ${byStage[k]}</span>`).join('');
   const items = all.slice(0, 6);
   const more = all.length - items.length;
   const settled = o.shipping_status === '已出貨';
@@ -242,7 +296,9 @@ function card(o){
       <span class="chip s${esc(o.shipping_status)}">${esc(o.shipping_status)}</span>
       ${o.order_type === '批發' ? '<span class="chip ws">批發</span>' : ''}
       ${o.free_ship ? '<span class="chip free">滿額免運</span>' : ''}
+      ${gap > 0 ? `<span class="gap">待收訂金 ${money(gap)}</span>` : ''}
     </div>
+    ${stages ? `<div class="stages">${stages}</div>` : ''}
     <div class="money">
       <div><div class="k">訂單總額</div><div class="v total">${money(o.total_amount)}</div></div>
       <div><div class="k">應收訂金</div><div class="v">${money(o.deposit_due)}</div></div>
@@ -264,12 +320,14 @@ let seq = 0, timer;
 async function run(){
   const kw = $('q').value.trim();
   const mine = ++seq;
-  if(!kw){ $('out').innerHTML = '<div class="empty">輸入關鍵字開始搜尋</div>'; $('meter').innerHTML = ''; return; }
   try{
-    const { rows, ms } = await search(kw);
+    // 沒打字就照分頁籤列出待辦，不是空白畫面 —— 打開就能直接工作
+    const { rows, ms } = kw ? await search(kw) : await browse();
     if(mine !== seq) return;
-    $('meter').innerHTML = `找到 <b>${rows.length}</b> 張 · <span class="ms">${ms}ms</span>`;
-    $('out').innerHTML = rows.length ? rows.map(card).join('') : '<div class="empty">沒有符合的訂單</div>';
+    const label = kw ? '找到' : '目前';
+    $('meter').innerHTML = `${label} <b>${rows.length}</b> 張 · <span class="ms">${ms}ms</span>`;
+    $('out').innerHTML = rows.length ? rows.map(card).join('')
+      : `<div class="empty">${kw ? '沒有符合的訂單' : '這個分類目前沒有訂單 🎉'}</div>`;
   }catch(e){
     if(mine !== seq) return;
     $('meter').innerHTML = '';
@@ -277,10 +335,17 @@ async function run(){
   }
 }
 $('q').addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(run, 120); });
+$('tabs').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if(!b) return;
+  tab = b.dataset.t;
+  [...$('tabs').children].forEach(x => x.setAttribute('aria-pressed', x === b));
+  run();
+});
 
 // 開頁時若已有登入紀錄，先續期再進主畫面
 (async () => {
-  if(session && session.refresh_token && await refresh()) showApp();
+  if(session && session.refresh_token && await refresh()){ showApp(); run(); }
   else showLogin();
 })();
 </script>
