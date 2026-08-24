@@ -220,33 +220,40 @@ async function get(path, retried){
 }
 
 const FIELDS = 'id,order_no,created_date,order_type,payment_method,free_ship,shipping_status,'
-             + 'total_amount,deposit_due,balance_due,deposit_paid,'
+             + 'total_amount,deposit_due,balance_due,deposit_paid,deposit_gap,'
              + 'customers(display_name,code),'
              + 'order_items(name,spec,qty,unit_price,stage)';
 
-// 各分頁籤的伺服器端條件。放在資料庫做篩選，不是撈回來再濾 ——
-// 這樣不管訂單累積到幾萬張，速度都一樣。
-const TAB_FILTER = {
-  todo:    '&shipping_status=neq.已出貨',
-  ship:    '&shipping_status=eq.待出貨',
-  dep:     '&shipping_status=neq.已出貨',      // 訂金缺口在前端算（產生欄位無法直接比大小）
-  arrived: '&shipping_status=neq.已出貨',
-  all:     ''
+// ⚠️ 這裡的順序很重要：要先篩選、再限制筆數。
+//    原本是「拿最新 60 張再前端篩」，結果 8/6 的備貨中訂單被更新的單擠掉，
+//    永遠不會出現在「可出貨」清單裡 —— 篩選條件形同虛設。
+//    改成把「未出貨」的整批撈回來（數量有上限，不會爆）再篩。
+// ⚠️ 篩選一定要在資料庫做，不能撈回來再用前端濾。
+//    原本是「拿最新 N 張再篩」，備貨中的舊單會被更新的單擠掉，
+//    永遠不出現在「可出貨」—— 篩選條件形同虛設。
+//    現在條件全部下給資料庫，它篩完才回前 60 筆，累積幾萬張都正確。
+const TAB = {
+  todo:    { q: '&or=(shipping_status.neq.已出貨,deposit_gap.gt.0)' },
+  ship:    { q: '&shipping_status=eq.待出貨' },
+  dep:     { q: '&deposit_gap=gt.0' },
+  // !inner 讓資料庫只回「真的有已抵台／備貨中商品」的訂單
+  arrived: { q: '&shipping_status=neq.已出貨', inner: '&order_items.stage=in.(已抵台,備貨中)' },
+  all:     { q: '' }
 };
 let tab = 'todo';
 
+// 待辦用「最舊優先」——積最久的最該先處理；
+// 加上單號當第二排序，同一天的順序才不會每次重整都不一樣。
+const SORT = { todo:'asc', ship:'asc', dep:'asc', arrived:'asc', all:'desc' };
+
 async function browse(){
   const t0 = performance.now();
-  const rows = await get(`orders?select=${FIELDS}${TAB_FILTER[tab]}&order=created_date.desc&limit=60`);
-  return { rows: applyTab(rows), ms: Math.round(performance.now() - t0) };
-}
-
-function applyTab(rows){
-  if(tab === 'dep')     return rows.filter(o => (Number(o.deposit_due) || 0) - (Number(o.deposit_paid) || 0) > 0);
-  if(tab === 'arrived') return rows.filter(o => (o.order_items || []).some(i => i.stage === '已抵台' || i.stage === '備貨中'));
-  if(tab === 'todo')    return rows.filter(o =>
-    o.shipping_status !== '已出貨' || (Number(o.deposit_due) || 0) - (Number(o.deposit_paid) || 0) > 0);
-  return rows;
+  const t = TAB[tab];
+  const dir = SORT[tab];
+  const fields = t.inner ? FIELDS.replace('order_items(', 'order_items!inner(') : FIELDS;
+  const rows = await get(`orders?select=${fields}${t.q}${t.inner || ''}`
+    + `&order=created_date.${dir},order_no.${dir}&limit=60`);
+  return { rows, ms: Math.round(performance.now() - t0) };
 }
 
 async function search(kw){
@@ -276,7 +283,7 @@ function card(o){
   const c = o.customers || {};
   const all = o.order_items || [];
   // 還差多少訂金 —— 這是你決定要不要催收的依據
-  const gap = Math.max(0, (Number(o.deposit_due) || 0) - (Number(o.deposit_paid) || 0));
+  const gap = Math.max(0, Number(o.deposit_gap) || 0);   // 資料庫算好的，跟篩選條件同一個數字
   // 商品階段摘要：一眼看出這張單卡在哪個環節
   const byStage = {};
   all.forEach(i => { byStage[i.stage] = (byStage[i.stage] || 0) + (Number(i.qty) || 1); });
@@ -325,7 +332,7 @@ async function run(){
     const { rows, ms } = kw ? await search(kw) : await browse();
     if(mine !== seq) return;
     const label = kw ? '找到' : '目前';
-    $('meter').innerHTML = `${label} <b>${rows.length}</b> 張 · <span class="ms">${ms}ms</span>`;
+    $('meter').innerHTML = `${label} <b>${rows.length}</b> 張 · <span class="ms">${ms}ms</span>`
     $('out').innerHTML = rows.length ? rows.map(card).join('')
       : `<div class="empty">${kw ? '沒有符合的訂單' : '這個分類目前沒有訂單 🎉'}</div>`;
   }catch(e){
