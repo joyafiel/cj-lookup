@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>訂單卡片 A 版 · 完整功能</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#FDFBF7; --card:#fff; --ink:#3d3a36; --soft:#9b938a; --faint:#C9C2B9;
+  --seal:#8C7B6C; --line:#EDE7DF; --paper:#faf7f2;
+  --blue:#2f5d8a; --orange:#c2703a; --green:#1a7f4b; --red:#a33028; --purple:#6b4e8a;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);
+     font-family:"Noto Sans TC",system-ui,sans-serif;font-size:15px;line-height:1.6}
+/* 電腦版收窄 —— 原本整片鋪滿螢幕，眼睛要橫掃很累 */
+.page{max-width:820px;margin:0 auto;padding:18px 13px 70px}
+
+h1{font-family:"Noto Serif TC",serif;font-weight:500;font-style:italic;
+   font-size:24px;color:var(--seal);margin:0 0 3px}
+.sub{color:var(--soft);font-size:13px;margin:0 0 18px}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;
+      padding:13px 15px;margin-bottom:12px}
+
+/* ── 標題列：勾選 · 客人 · 單號 · 刪除 ── */
+.hd{display:flex;align-items:center;gap:9px}
+.hd input[type=checkbox]{width:17px;height:17px;accent-color:var(--seal);flex:none}
+.name{font-size:19px;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.warn{font-size:10px;font-weight:700;padding:1px 7px;border-radius:7px;
+      background:#fdf0ef;color:var(--red);border:1px solid #f3d5d2;flex:none}
+.no{font-size:11px;color:var(--faint);font-family:ui-monospace,monospace;margin-left:auto;flex:none}
+.del{flex:none;width:30px;height:30px;border-radius:9px;border:1px solid var(--line);
+     background:var(--card);color:var(--faint);cursor:pointer;font-size:13px}
+
+/* ── 狀態籤：手機一排橫捲，不換行 ── */
+.chips{display:flex;gap:5px;margin:9px 0;overflow-x:auto;padding-bottom:2px;
+       scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;font-size:10.5px;font-weight:700;padding:3px 10px;border-radius:999px;
+      background:#f6f2ec;color:var(--soft);border:1px solid transparent;
+      cursor:pointer;font-family:inherit;white-space:nowrap}
+.chip.ws{background:#f0eaf5;color:var(--purple)}
+.chip.free{background:#e8f5ee;color:var(--green)}
+.chip.wait{background:#fdf0e7;color:var(--orange)}
+.chip.part{background:#eef3f8;color:var(--blue)}
+.chip.gap{background:#fdf0ef;color:var(--red)}
+.chip.line{background:#f6f2ec;color:var(--faint)}
+
+/* ── 動作：每排三顆，手機不會擠成兩行半 ── */
+.acts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:4px}
+.btn{padding:9px 6px;border-radius:10px;border:1px solid var(--line);background:var(--card);
+     color:var(--ink);font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap}
+.btn.p{background:var(--seal);color:#fff;border-color:var(--seal)}
+.btn.g{background:#e8f5ee;color:var(--green);border-color:#cfe8db}
+.btn.b{background:#eef3f8;color:var(--blue);border-color:#d8e4f0}
+
+/* ── 金額 ── */
+.money{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;
+       padding:11px 0;margin-top:9px;border-top:1px solid var(--line)}
+.k{font-size:10px;color:var(--soft);font-weight:700}
+.v{font-family:"Noto Serif TC",serif;font-style:italic;font-weight:700;font-size:17px}
+.v.total{color:var(--blue)} .v.bal{color:var(--orange)} .v.paid{color:var(--green)}
+.v input{font:inherit;font-size:17px;border:0;border-bottom:1px dashed var(--faint);
+  background:transparent;width:100%;color:inherit;padding:0}
+.v input:focus{outline:none;border-bottom-color:var(--seal);border-bottom-style:solid}
+.paynote{font-size:11px;color:var(--faint);margin:-4px 0 6px}
+
+/* ── 商品 ── */
+.it{padding:10px 0;border-top:1px solid var(--line)}
+.it.oos{opacity:.55}
+.itop{display:flex;align-items:flex-start;gap:8px}
+.itop .n{flex:1;min-width:0;font-weight:700;font-size:14px;line-height:1.45}
+.itop .sp{color:var(--soft);font-weight:400}
+.qp{display:flex;align-items:center;gap:3px;flex:none;color:var(--soft);font-size:13px}
+.inp{border:1px dashed var(--faint);border-radius:6px;padding:2px 4px;font:inherit;
+     font-size:13px;text-align:center;background:transparent;color:var(--seal);font-weight:700}
+.inp:focus{outline:none;border-color:var(--seal);border-style:solid}
+
+/* 階段軌道 + 右側兩顆操作，一整排 */
+.strip{display:flex;gap:4px;margin-top:7px;align-items:stretch}
+.track{display:flex;gap:2px;flex:1;min-width:0}
+.track button{flex:1;padding:7px 1px;border:0;background:var(--line);color:var(--soft);
+  font:inherit;font-size:10px;font-weight:700;cursor:pointer;min-width:0}
+.track button:first-child{border-radius:7px 0 0 7px}
+.track button:last-child{border-radius:0 7px 7px 0}
+.track button.done{background:#ded4c7;color:#6f6052}
+.track button.now{background:var(--seal);color:#fff}
+.mini{flex:none;width:32px;border-radius:8px;border:1px solid var(--line);
+      background:var(--card);cursor:pointer;font-size:12px;color:var(--faint)}
+.mini.oosbtn{color:#d08b84;border-color:#f3d5d2}
+.oosbar{margin-top:7px;padding:6px 10px;border-radius:8px;background:#fdf0ef;
+        color:var(--red);font-size:11.5px;font-weight:700;display:flex;gap:8px;align-items:center}
+.oosbar button{margin-left:auto;border:0;background:none;color:var(--red);
+               font:inherit;font-size:11.5px;font-weight:700;text-decoration:underline;cursor:pointer}
+.split{width:100%;margin-top:6px;padding:6px;border-radius:8px;border:1px solid #f0dcc8;
+       background:#fdf6ef;color:var(--orange);font:inherit;font-size:11.5px;font-weight:700;cursor:pointer}
+.ttag{font-size:10.5px;color:var(--green);font-weight:700;margin-top:5px}
+
+.fold{margin-top:7px}
+.fold summary{list-style:none;cursor:pointer;font-size:11.5px;color:var(--faint);font-weight:700}
+.fold summary::-webkit-details-marker{display:none}
+.foldbody{display:flex;gap:8px;margin-top:6px}
+.foldbody label{flex:1;font-size:10px;color:var(--soft);font-weight:700}
+.foldbody input{width:100%;margin-top:3px;padding:7px 9px;border:1px solid var(--line);
+  border-radius:8px;font:inherit;font-size:13px;background:var(--paper)}
+.more{width:100%;margin-top:8px;padding:8px;border-radius:10px;border:1px solid var(--line);
+      background:var(--paper);color:var(--seal);font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+
+/* ── 物流 / 收款 / 備註 ── */
+.side{background:var(--paper);border-radius:12px;padding:11px 12px;margin-top:11px}
+.srow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.srow+.srow{margin-top:9px;padding-top:9px;border-top:1px solid var(--line)}
+.lbl{font-size:10px;color:var(--soft);font-weight:700;width:100%}
+.side select,.side input{padding:8px 9px;border:1px solid var(--line);border-radius:9px;
+  font:inherit;font-size:13px;background:var(--card);min-width:0}
+.grow{flex:1}
+.link{flex:none;width:36px;text-align:center;padding:8px 0;border:1px solid var(--line);
+      border-radius:9px;background:var(--card);color:var(--soft);text-decoration:none}
+.side textarea{width:100%;padding:8px 9px;border:1px solid var(--line);border-radius:9px;
+  font:inherit;font-size:13px;background:var(--card);resize:none}
+
+/* ── 電腦版：兩欄，不要拉太寬 ── */
+@media(min-width:760px){
+  .body2{display:grid;grid-template-columns:1.35fr 1fr;gap:18px;align-items:start}
+  .acts{grid-template-columns:repeat(6,1fr)}
+  .money{grid-template-columns:repeat(4,1fr)}
+}
+
+.checklist{background:var(--card);border:1px solid var(--line);border-radius:14px;
+           padding:14px 16px;margin-bottom:18px;font-size:13px;line-height:1.9}
+.checklist b{color:var(--seal)}
+.checklist span{color:var(--green);font-weight:700}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>訂單卡片 · A 版完整功能</h1>
+  <p class="sub">預覽用，資料是假的。第二張單刻意做成有斷貨、有併單、已出貨，方便看各種狀態。</p>
+
+  <div class="checklist">
+    <b>功能對照（現有卡片的每一項都在）</b><br>
+    <span>✓</span> 勾選批次　<span>✓</span> 建賣場／排入　<span>✓</span> 對帳單　<span>✓</span> 明細　<span>✓</span> 入帳<br>
+    <span>✓</span> 免運切換　<span>✓</span> 零售批發切換　<span>✓</span> 併單／合一賣場　<span>✓</span> 刪除訂單<br>
+    <span>✓</span> 改單價／數量　<span>✓</span> 六階段　<span>✓</span> 整筆斷貨　<span>✓</span> 部分斷貨　<span>✓</span> 刪除單一商品<br>
+    <span>✓</span> 實際採購廠商／成本　<span>✓</span> 商品超過 3 項收合　<span>✓</span> 商品物流單號<br>
+    <span>✓</span> 訂單總額／代墊成本可改　<span>✓</span> 收款紀錄摘要　<span>✓</span> LINE 通知狀態<br>
+    <span>✓</span> 出貨／重發通知　<span>✓</span> 物流單號＋查件連結　<span>✓</span> 收款方式帳戶後五碼　<span>✓</span> 備註
+  </div>
+
+  <div id="wrap"></div>
+
+  <p class="sub" style="margin-top:24px">
+    三個調整：狀態籤手機上橫捲成一排、動作鈕每排三顆、電腦版收窄成 820px 兩欄。
+  </p>
+</div>
+
+<script>
+const STAGES = ['待訂','已訂','集運','抵台','備貨','已出'];
+const money = n => '$' + Number(n||0).toLocaleString();
+
+const DATA = [
+  { no:'ORD260824-18', name:'鄧羽寧', type:'零售', chan:'LINE@', free:false, ship:'待出貨',
+    total:4240, dep:4180, depDue:4220, bal:20, cost:3860, track:'', recip:'Claudia', last5:'38894',
+    remark:'', pays:1, payTotal:4180, lineState:'已綁定 · 未通知', pending:0, merged:false,
+    items:[ {n:'韓國｜SPAO x 進擊的巨人_黑色風衣外套', spec:'S', q:1, p:135, st:0},
+            {n:'韓國｜SPAO x 進擊的巨人_麂皮外套', spec:'S', q:1, p:2200, st:0},
+            {n:'韓國｜SPAO x 進擊的巨人_圍巾', spec:'紅色', q:1, p:690, st:0} ] },
+
+  { no:'ORD260821-04', name:'林玉米🌽', type:'批發', chan:'LINE社群', free:true, ship:'部分出貨',
+    total:6780, dep:2000, depDue:6720, bal:60, cost:4980, track:'CM2608240447222',
+    recip:'Joya', last5:'', remark:'客人說要跟下一批一起寄', pays:2, payTotal:2000,
+    lineState:'已通知 · 8/22', pending:3, merged:true,
+    items:[ {n:'首爾｜0816寶可夢快閃店_04 鯉魚王公仔盲盒（7款）', spec:'', q:7, p:470, st:3},
+            {n:'首爾｜0816寶可夢快閃店_12 鯉魚王丹寧老帽', spec:'', q:2, p:1100, st:5,
+             itrack:'CM2608240447222'},
+            {n:'首爾｜0816寶可夢快閃店_29 百變怪大尾立', spec:'', q:1, p:800, oos:true},
+            {n:'首爾｜0816寶可夢快閃店_103 品牌紙袋', spec:'', q:2, p:150, st:1} ] }
+];
+
+function track(it){
+  if(it.oos) return '';
+  return `<div class="track">${STAGES.map((s,i)=>{
+    const cls = i<it.st ? 'done' : i===it.st ? 'now' : '';
+    return `<button class="${cls}">${s}</button>`;
+  }).join('')}</div>`;
+}
+
+function item(it){
+  return `<div class="it ${it.oos?'oos':''}">
+    <div class="itop">
+      <span class="n">${it.n}${it.spec?`<span class="sp"> (${it.spec})</span>`:''}</span>
+      <span class="qp">×<input class="inp" style="width:36px" value="${it.q}">
+        $<input class="inp" style="width:54px" value="${it.p}"></span>
+    </div>
+
+    ${it.oos ? `<div class="oosbar">🚫 已斷貨 · 金額已扣除
+        <button>處理方式</button><button>恢復</button></div>`
+      : `<div class="strip">
+          ${track(it)}
+          <button class="mini oosbtn" title="整筆斷貨">🚫</button>
+          <button class="mini" title="刪除此商品">🗑</button>
+         </div>
+         ${it.q > 1 ? '<button class="split">✂️ 部分斷貨（共 ' + it.q + ' 件）</button>' : ''}`}
+
+    ${it.itrack ? `<div class="ttag">🚚 ${it.itrack}</div>` : ''}
+
+    <details class="fold"><summary>＋ 採購資訊</summary>
+      <div class="foldbody">
+        <label>實際採購廠商<input placeholder="e.g. 美日韓-NA"></label>
+        <label>實際單件成本<input placeholder="0" inputmode="decimal"></label>
+      </div>
+    </details>
+  </div>`;
+}
+
+function card(o){
+  const gap = Math.max(0, o.depDue - o.dep);
+  const shipCls = o.ship==='待出貨' ? 'wait' : o.ship==='部分出貨' ? 'part' : 'free';
+  const shown = o.items.slice(0, 3), rest = o.items.length - 3;
+
+  return `<div class="card">
+    <div class="hd">
+      <input type="checkbox">
+      <span class="name">${o.name}</span>
+      ${o.pending>1?`<span class="warn">⚠ ${o.pending}未出</span>`:''}
+      <span class="no">${o.no}</span>
+      <button class="del">🗑</button>
+    </div>
+
+    <div class="chips">
+      <button class="chip ${o.type==='批發'?'ws':''}">${o.type==='批發'?'🤝 批發':'🛍 零售'}</button>
+      <span class="chip">${o.chan}</span>
+      <button class="chip ${o.free?'free':''}">🎫 ${o.free?'滿額免運':'未免運'}</button>
+      <span class="chip ${shipCls}">${o.ship}</span>
+      ${gap>0?`<span class="chip gap">待收訂金 ${money(gap)}</span>`:''}
+      <span class="chip line">💬 ${o.lineState}</span>
+    </div>
+
+    <div class="acts">
+      <button class="btn p">🏪 建賣場</button>
+      <button class="btn">📋 對帳單</button>
+      <button class="btn">📄 明細</button>
+      <button class="btn g">＋ 入帳</button>
+      ${o.merged?'<button class="btn b">👁 併單 (3)</button><button class="btn b">🔗 合一賣場</button>'
+                :'<button class="btn">📲 排入</button><button class="btn">🔔 重發通知</button>'}
+    </div>
+
+    <div class="body2">
+      <div>
+        <div class="money">
+          <div><div class="k">訂單總額</div>
+               <div class="v total"><input value="${o.total}"></div></div>
+          <div><div class="k">已收訂金</div><div class="v paid">${money(o.dep)}</div></div>
+          <div><div class="k">${o.ship==='已出貨'?'尾款':'應收尾款'}</div>
+               <div class="v bal">${o.ship==='已出貨'?'已結清':money(o.bal)}</div></div>
+          <div><div class="k">代墊成本</div>
+               <div class="v" style="color:var(--soft)"><input value="${o.cost}"></div></div>
+        </div>
+        ${o.pays?`<div class="paynote">📋 共 ${o.pays} 筆收款，累計 ${money(o.payTotal)}</div>`:''}
+        ${shown.map(item).join('')}
+        ${rest>0?`<button class="more">▼ 展開其餘 ${rest} 項商品</button>`:''}
+      </div>
+
+      <div>
+        <div class="side">
+          <div class="srow"><span class="lbl">📦 物流</span>
+            <input class="grow" value="${o.track}" placeholder="物流單號…">
+            ${o.track?'<a class="link" href="#">↗</a>':''}
+            <button class="btn p" style="flex:none;padding:8px 14px">🚚 出貨</button></div>
+
+          <div class="srow"><span class="lbl">💰 收款</span>
+            <select class="grow"><option>匯款+賣貨便</option><option>VIP貨到付款</option>
+              <option>KOCA結帳</option><option>自取</option></select>
+            <select class="grow"><option>${o.recip}</option><option>Joya</option>
+              <option>Claudia</option><option>尚未收款</option></select>
+            <input style="width:70px" value="${o.last5}" placeholder="後5碼"></div>
+
+          <div class="srow"><span class="lbl">📝 備註</span>
+            <textarea rows="2" placeholder="新增備註…">${o.remark}</textarea></div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+document.getElementById('wrap').innerHTML = DATA.map(card).join('');
+document.querySelectorAll('.more').forEach(b => b.onclick = () => {
+  b.previousElementSibling.insertAdjacentHTML('afterend',
+    item(DATA[1].items[3]));
+  b.remove();
+});
+</script>
+</body>
+</html>
