@@ -50,24 +50,15 @@ h1{font-family:"Noto Serif TC",serif;font-weight:500;font-style:italic;
 .chip.gap{background:#fdf0ef;color:var(--red)}
 .chip.line{background:#f6f2ec;color:var(--faint)}
 
-/* ── 動作：每排三顆，手機不會擠成兩行半 ── */
-.acts{display:flex;gap:5px;margin-bottom:4px;align-items:stretch}
-.btn.more-btn{flex:none;width:34px;color:var(--soft)}
-.menu{position:relative;display:flex}
-.menu-pop{display:none;position:absolute;right:0;top:calc(100% + 5px);z-index:20;
-  background:var(--card);border:1px solid var(--line);border-radius:12px;padding:5px;
-  box-shadow:0 8px 24px rgba(0,0,0,.10);min-width:162px}
-.menu.open .menu-pop{display:block}
-.menu-pop button{display:block;width:100%;text-align:left;padding:9px 11px;border:0;
-  background:none;font:inherit;font-size:13px;color:var(--ink);border-radius:8px;cursor:pointer}
-.menu-pop button:active{background:var(--paper)}
-.menu-pop button.danger{color:var(--red)}
-.menu-pop hr{border:0;border-top:1px solid var(--line);margin:4px 6px}
-.btn{flex:1;padding:8px 4px;border-radius:9px;border:1px solid var(--line);background:var(--card);
-     color:var(--ink);font:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
-.btn.p{background:var(--seal);color:#fff;border-color:var(--seal)}
-.btn.g{background:#e8f5ee;color:var(--green);border-color:#cfe8db}
-.btn.b{background:#eef3f8;color:var(--blue);border-color:#d8e4f0}
+/* ── 動作：全部同一種 pill。
+   功能屬性一樣（都是對這張訂單做事），就不該有兩種長相。 ── */
+.acts{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 4px}
+.acts button{padding:7px 14px;border-radius:999px;border:0;
+  background:#f6f2ec;color:#6f6052;
+  font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;
+  transition:background .15s}
+.acts button:hover{background:#efe8df}
+.acts button:active{transform:scale(.97)}
 
 /* ── 金額 ── */
 .money{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;
@@ -255,23 +246,18 @@ function card(o){
       <span class="chip line">💬 ${o.lineState}</span>
     </div>
 
+    <!-- 動作列：對這張訂單能做的事，全部同一種 pill、同一排（自動換行）。
+         建賣場／排入是同一件事的兩種裝置版本：電腦跑腳本、手機排入待建清單。
+         刪除訂單只在右上角 —— 破壞性動作只有一個入口。 -->
     <div class="acts">
-      <!-- 建賣場／排入是同一件事的兩種裝置版本：電腦跑腳本、手機排入待建清單 -->
-      <button class="btn p">${IS_MOBILE ? '📲 排入' : '🏪 建賣場'}</button>
-      <button class="btn">📋 對帳單</button>
-      <button class="btn g">＋ 入帳</button>
-      <button class="btn p">🚚 出貨</button>
-      <span class="menu">
-        <button class="btn more-btn" onclick="this.parentNode.classList.toggle('open')">⋯</button>
-        <span class="menu-pop">
-          <button>📄 訂單明細圖</button>
-          <button>🔔 重發出貨通知</button>
-          ${o.merged ? '<button>👁 退出併單</button><button>🔗 合一賣場</button>'
-                     : '<button>👁 併單檢視</button>'}
-          <hr>
-          <button class="danger">🗑 刪除整張訂單</button>
-        </span>
-      </span>
+      <button>${IS_MOBILE ? '📲 排入' : '🏪 建賣場'}</button>
+      <button>📋 對帳單</button>
+      <button>＋ 入帳</button>
+      <button>🚚 出貨</button>
+      <button>📄 明細圖</button>
+      <button>🔔 重發通知</button>
+      <button>${o.merged ? '👁 退出併單' : '👁 併單檢視'}</button>
+      ${o.merged ? '<button>🔗 合一賣場</button>' : ''}
     </div>
 
     <div class="money">
@@ -290,8 +276,7 @@ function card(o){
     <div class="side">
       <div class="srow"><span class="lbl">📦 物流</span>
         <input class="grow" value="${o.track}" placeholder="物流單號…">
-        ${o.track?'<a class="link" href="#">↗</a>':''}
-        <button class="btn p" style="flex:none;padding:8px 14px">🚚 出貨</button></div>
+        ${o.track?'<a class="link" href="#">↗</a>':''}</div>
 
       <div class="srow"><span class="lbl">💰 收款</span>
         <select class="grow"><option>匯款+賣貨便</option><option>VIP貨到付款</option>
@@ -307,9 +292,6 @@ function card(o){
 }
 
 document.getElementById('wrap').innerHTML = DATA.map(card).join('');
-document.addEventListener('click', e => {
-  if(!e.target.closest('.menu')) document.querySelectorAll('.menu.open').forEach(m => m.classList.remove('open'));
-});
 document.querySelectorAll('.more').forEach(b => b.onclick = () => {
   b.previousElementSibling.insertAdjacentHTML('afterend',
     item(DATA[1].items[3]));
