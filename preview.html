@@ -136,8 +136,7 @@ h1{font-family:"Noto Serif TC",serif;font-weight:500;font-style:italic;
 .grow{flex:1}
 .link{flex:none;width:36px;text-align:center;padding:8px 0;border:1px solid var(--line);
       border-radius:9px;background:var(--card);color:var(--soft);text-decoration:none}
-.side textarea{width:100%;padding:8px 9px;border:1px solid var(--line);border-radius:9px;
-  font:inherit;font-size:13px;background:var(--card);resize:none}
+
 
 /* ── 電腦版 ──
    不再左右分欄：商品名稱很長，需要完整寬度；
@@ -145,8 +144,10 @@ h1{font-family:"Noto Serif TC",serif;font-weight:500;font-style:italic;
 @media(min-width:760px){
   .acts{grid-template-columns:repeat(8,1fr)}
   .side{display:grid;grid-template-columns:1.15fr 1.15fr 1fr;gap:16px;align-items:start}
-  .srow+.srow{margin-top:0;padding-top:0;border-top:0;border-left:1px solid var(--line);padding-left:16px}
-  .side textarea{min-height:74px}
+  .srow+.srow{margin-top:0;padding-top:0;border-top:0;
+              border-left:1px solid var(--line);padding-left:16px}
+  /* 三欄的輸入框高度一致，底線才會切齊 */
+  .side .srow{align-content:start}
 }
 
 .checklist{background:var(--card);border:1px solid var(--line);border-radius:14px;
@@ -309,7 +310,7 @@ function card(o){
         <input style="width:70px" value="${o.last5}" placeholder="後5碼"></div>
 
       <div class="srow"><span class="lbl">📝 備註</span>
-        <textarea rows="2" placeholder="新增備註…">${o.remark}</textarea></div>
+        <input class="grow" value="${o.remark}" placeholder="新增備註…"></div>
     </div>
   </div>`;
 }
