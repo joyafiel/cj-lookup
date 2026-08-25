@@ -23,6 +23,12 @@ h1{font-family:"Noto Serif TC",serif;font-weight:500;font-style:italic;
    font-size:24px;color:var(--seal);margin:0 0 3px}
 .sub{color:var(--soft);font-size:13px;margin:0 0 18px}
 
+.tabs{display:flex;gap:6px;overflow-x:auto;margin:0 0 14px;padding-bottom:2px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:none;padding:7px 15px;border-radius:999px;border:1px solid var(--line);
+  background:var(--card);color:var(--soft);font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
+.tabs button[aria-pressed=true]{background:var(--seal);color:#fff;border-color:var(--seal)}
+.tabs button span{opacity:.65;margin-left:3px;font-size:11px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;
       padding:13px 15px;margin-bottom:12px}
 
@@ -171,6 +177,15 @@ h1{font-family:"Noto Serif TC",serif;font-weight:500;font-style:italic;
     <span>✓</span> 出貨／重發通知　<span>✓</span> 物流單號＋查件連結　<span>✓</span> 收款方式帳戶後五碼　<span>✓</span> 備註
   </div>
 
+  <!-- 訂單管理層級的分頁籤：回答「現在該做什麼」，不用自己掃 -->
+  <div class="tabs">
+    <button>待處理</button>
+    <button>待出貨</button>
+    <button>未收訂金</button>
+    <button aria-pressed="true">可出貨 <span>2</span></button>
+    <button>全部</button>
+  </div>
+
   <div id="wrap"></div>
 
   <p class="sub" style="margin-top:24px">
@@ -266,15 +281,18 @@ function card(o){
     <!-- 動作列：對這張訂單能做的事，全部同一種 pill、同一排（自動換行）。
          建賣場／排入是同一件事的兩種裝置版本：電腦跑腳本、手機排入待建清單。
          刪除訂單只在右上角 —— 破壞性動作只有一個入口。 -->
+    <!-- 依工作流分兩排：
+         上排＝跟客人之間的帳（收錢、給單據、通知）
+         下排＝把貨送出去（併單→建賣場→出貨） -->
     <div class="acts">
-      <button>${IS_MOBILE ? '📲 排入' : '🏪 建賣場'}</button>
-      <button>📋 對帳單</button>
       <button>＋ 入帳</button>
-      <button>🚚 出貨</button>
+      <button>📋 對帳單</button>
       <button>📄 明細</button>
       <button>🔔 通知</button>
       <button>${o.merged ? '👁 退併單' : '👁 併單'}</button>
       ${o.merged ? '<button>🔗 合一</button>' : '<button disabled>🔗 合一</button>'}
+      <button>${IS_MOBILE ? '📲 排入' : '🏪 建賣場'}</button>
+      <button>🚚 出貨</button>
     </div>
 
     <div class="money">
