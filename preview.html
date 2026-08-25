@@ -80,6 +80,16 @@ h1{font-family:"Noto Serif TC",serif;font-weight:500;font-style:italic;
 .it.oos{opacity:.55}
 .itop{display:flex;align-items:flex-start;gap:8px}
 .itop .n{flex:1;min-width:0;font-weight:700;font-size:14px;line-height:1.45}
+/* 商品層勾選：實際流程是「五件裡挑三件建成一個賣場」，
+   所以勾選必須在商品這一層，不是整張訂單。 */
+.ick{width:17px;height:17px;accent-color:var(--seal);flex:none;margin-top:3px}
+.selbar{position:sticky;bottom:8px;z-index:8;margin-top:10px;padding:9px 12px;
+  border-radius:999px;background:var(--seal);color:#fff;display:none;
+  align-items:center;gap:8px;box-shadow:0 6px 18px rgba(140,123,108,.32)}
+.selbar.on{display:flex}
+.selbar .cnt{font-size:12.5px;font-weight:700;flex:1}
+.selbar button{padding:6px 13px;border-radius:999px;border:0;background:rgba(255,255,255,.92);
+  color:var(--seal);font:inherit;font-size:12px;font-weight:700;cursor:pointer}
 .itop .sp{color:var(--soft);font-weight:400}
 .qp{display:flex;align-items:center;gap:3px;flex:none;color:var(--soft);font-size:13px}
 .inp{border:1px dashed var(--faint);border-radius:6px;padding:2px 4px;font:inherit;
@@ -203,6 +213,7 @@ function track(it){
 function item(it){
   return `<div class="it ${it.oos?'oos':''}">
     <div class="itop">
+      <input type="checkbox" class="ick" ${it.oos?'disabled':''}>
       <span class="n">${it.n}${it.spec?`<span class="sp"> (${it.spec})</span>`:''}</span>
       <span class="qp">×<input class="inp" style="width:36px" value="${it.q}">
         $<input class="inp" style="width:54px" value="${it.p}"></span>
@@ -278,6 +289,13 @@ function card(o){
     ${shown.map(item).join('')}
     ${rest>0?`<button class="more">▼ 展開其餘 ${rest} 項商品</button>`:''}
 
+        <!-- 勾選商品後才浮出：挑幾件出貨或建成一個賣場 -->
+        <div class="selbar">
+          <span class="cnt">已選 <b>0</b> 件</span>
+          <button>🏪 建賣場</button>
+          <button>🚚 出貨</button>
+        </div>
+
     <div class="side">
       <div class="srow"><span class="lbl">📦 物流</span>
         <input class="grow" value="${o.track}" placeholder="物流單號…">
@@ -297,6 +315,18 @@ function card(o){
 }
 
 document.getElementById('wrap').innerHTML = DATA.map(card).join('');
+
+// 勾選商品時，卡片底部浮出操作列
+document.querySelectorAll('.card').forEach(card => {
+  const bar = card.querySelector('.selbar');
+  if(!bar) return;
+  card.addEventListener('change', e => {
+    if(!e.target.classList.contains('ick')) return;
+    const n = card.querySelectorAll('.ick:checked').length;
+    bar.querySelector('b').textContent = n;
+    bar.classList.toggle('on', n > 0);
+  });
+});
 document.querySelectorAll('.more').forEach(b => b.onclick = () => {
   b.previousElementSibling.insertAdjacentHTML('afterend',
     item(DATA[1].items[3]));
