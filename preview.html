@@ -50,14 +50,18 @@ h1{font-family:"Noto Serif TC",serif;font-weight:500;font-style:italic;
 .chip.gap{background:#fdf0ef;color:var(--red)}
 .chip.line{background:#f6f2ec;color:var(--faint)}
 
-/* ── 動作：全部同一種 pill。
-   功能屬性一樣（都是對這張訂單做事），就不該有兩種長相。 ── */
-.acts{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 4px}
-.acts button{padding:7px 14px;border-radius:999px;border:0;
-  background:#f6f2ec;color:#6f6052;
-  font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;
-  transition:background .15s}
-.acts button:hover{background:#efe8df}
+/* ── 動作：等寬格線，切齊邊緣。
+   自由換行的 pill 每排長度不一，右邊會缺一塊，看起來像沒排版。
+   改成 grid 之後每排都對齊，跟現行 ERP 一樣整齊。
+   手機一排 4 顆，電腦一排 8 顆剛好一列。 ── */
+.acts{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:2px 0 4px}
+.acts button{padding:9px 4px;border-radius:12px;border:1px solid var(--line);
+  background:var(--card);color:var(--ink);
+  font:inherit;font-size:12px;font-weight:700;cursor:pointer;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  transition:background .15s,border-color .15s}
+.acts button:hover:not(:disabled){background:var(--paper);border-color:var(--faint)}
+.acts button:disabled{color:var(--faint);background:var(--paper);cursor:default}
 .acts button:active{transform:scale(.97)}
 
 /* ── 金額 ── */
@@ -129,6 +133,7 @@ h1{font-family:"Noto Serif TC",serif;font-weight:500;font-style:italic;
    不再左右分欄：商品名稱很長，需要完整寬度；
    物流／收款／備註改成整寬橫向三區，各自有足夠空間，不會擠在右邊細長條裡。 */
 @media(min-width:760px){
+  .acts{grid-template-columns:repeat(8,1fr)}
   .side{display:grid;grid-template-columns:1.15fr 1.15fr 1fr;gap:16px;align-items:start}
   .srow+.srow{margin-top:0;padding-top:0;border-top:0;border-left:1px solid var(--line);padding-left:16px}
   .side textarea{min-height:74px}
@@ -254,10 +259,10 @@ function card(o){
       <button>📋 對帳單</button>
       <button>＋ 入帳</button>
       <button>🚚 出貨</button>
-      <button>📄 明細圖</button>
-      <button>🔔 重發通知</button>
-      <button>${o.merged ? '👁 退出併單' : '👁 併單檢視'}</button>
-      ${o.merged ? '<button>🔗 合一賣場</button>' : ''}
+      <button>📄 明細</button>
+      <button>🔔 通知</button>
+      <button>${o.merged ? '👁 退併單' : '👁 併單'}</button>
+      ${o.merged ? '<button>🔗 合一</button>' : '<button disabled>🔗 合一</button>'}
     </div>
 
     <div class="money">
