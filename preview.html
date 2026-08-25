@@ -51,9 +51,20 @@ h1{font-family:"Noto Serif TC",serif;font-weight:500;font-style:italic;
 .chip.line{background:#f6f2ec;color:var(--faint)}
 
 /* ── 動作：每排三顆，手機不會擠成兩行半 ── */
-.acts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:4px}
-.btn{padding:9px 6px;border-radius:10px;border:1px solid var(--line);background:var(--card);
-     color:var(--ink);font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap}
+.acts{display:flex;gap:5px;margin-bottom:4px;align-items:stretch}
+.btn.more-btn{flex:none;width:34px;color:var(--soft)}
+.menu{position:relative;display:flex}
+.menu-pop{display:none;position:absolute;right:0;top:calc(100% + 5px);z-index:20;
+  background:var(--card);border:1px solid var(--line);border-radius:12px;padding:5px;
+  box-shadow:0 8px 24px rgba(0,0,0,.10);min-width:162px}
+.menu.open .menu-pop{display:block}
+.menu-pop button{display:block;width:100%;text-align:left;padding:9px 11px;border:0;
+  background:none;font:inherit;font-size:13px;color:var(--ink);border-radius:8px;cursor:pointer}
+.menu-pop button:active{background:var(--paper)}
+.menu-pop button.danger{color:var(--red)}
+.menu-pop hr{border:0;border-top:1px solid var(--line);margin:4px 6px}
+.btn{flex:1;padding:8px 4px;border-radius:9px;border:1px solid var(--line);background:var(--card);
+     color:var(--ink);font:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
 .btn.p{background:var(--seal);color:#fff;border-color:var(--seal)}
 .btn.g{background:#e8f5ee;color:var(--green);border-color:#cfe8db}
 .btn.b{background:#eef3f8;color:var(--blue);border-color:#d8e4f0}
@@ -123,11 +134,13 @@ h1{font-family:"Noto Serif TC",serif;font-weight:500;font-style:italic;
 .side textarea{width:100%;padding:8px 9px;border:1px solid var(--line);border-radius:9px;
   font:inherit;font-size:13px;background:var(--card);resize:none}
 
-/* ── 電腦版：兩欄，不要拉太寬 ── */
+/* ── 電腦版 ──
+   不再左右分欄：商品名稱很長，需要完整寬度；
+   物流／收款／備註改成整寬橫向三區，各自有足夠空間，不會擠在右邊細長條裡。 */
 @media(min-width:760px){
-  .body2{display:grid;grid-template-columns:1.35fr 1fr;gap:18px;align-items:start}
-  .acts{grid-template-columns:repeat(6,1fr)}
-  .money{grid-template-columns:repeat(4,1fr)}
+  .side{display:grid;grid-template-columns:1.15fr 1.15fr 1fr;gap:16px;align-items:start}
+  .srow+.srow{margin-top:0;padding-top:0;border-top:0;border-left:1px solid var(--line);padding-left:16px}
+  .side textarea{min-height:74px}
 }
 
 .checklist{background:var(--card);border:1px solid var(--line);border-radius:14px;
@@ -154,12 +167,14 @@ h1{font-family:"Noto Serif TC",serif;font-weight:500;font-style:italic;
   <div id="wrap"></div>
 
   <p class="sub" style="margin-top:24px">
-    三個調整：狀態籤手機上橫捲成一排、動作鈕每排三顆、電腦版收窄成 820px 兩欄。
+    調整：狀態籤手機橫捲成一排、動作鈕每排三顆、電腦版收窄成 820px，物流／收款／備註改成整寬三區。
   </p>
 </div>
 
 <script>
 const STAGES = ['待訂','已訂','集運','抵台','備貨','已出'];
+// 建賣場要跑腳本，只能在電腦做；手機改成排入待建清單 —— 同一件事的兩種裝置版本
+const IS_MOBILE = window.matchMedia('(max-width:759px)').matches;
 const money = n => '$' + Number(n||0).toLocaleString();
 
 const DATA = [
@@ -241,53 +256,60 @@ function card(o){
     </div>
 
     <div class="acts">
-      <button class="btn p">🏪 建賣場</button>
+      <!-- 建賣場／排入是同一件事的兩種裝置版本：電腦跑腳本、手機排入待建清單 -->
+      <button class="btn p">${IS_MOBILE ? '📲 排入' : '🏪 建賣場'}</button>
       <button class="btn">📋 對帳單</button>
-      <button class="btn">📄 明細</button>
       <button class="btn g">＋ 入帳</button>
-      ${o.merged?'<button class="btn b">👁 併單 (3)</button><button class="btn b">🔗 合一賣場</button>'
-                :'<button class="btn">📲 排入</button><button class="btn">🔔 重發通知</button>'}
+      <button class="btn p">🚚 出貨</button>
+      <span class="menu">
+        <button class="btn more-btn" onclick="this.parentNode.classList.toggle('open')">⋯</button>
+        <span class="menu-pop">
+          <button>📄 訂單明細圖</button>
+          <button>🔔 重發出貨通知</button>
+          ${o.merged ? '<button>👁 退出併單</button><button>🔗 合一賣場</button>'
+                     : '<button>👁 併單檢視</button>'}
+          <hr>
+          <button class="danger">🗑 刪除整張訂單</button>
+        </span>
+      </span>
     </div>
 
-    <div class="body2">
-      <div>
-        <div class="money">
+    <div class="money">
           <div><div class="k">訂單總額</div>
                <div class="v total"><input value="${o.total}"></div></div>
           <div><div class="k">已收訂金</div><div class="v paid">${money(o.dep)}</div></div>
           <div><div class="k">${o.ship==='已出貨'?'尾款':'應收尾款'}</div>
                <div class="v bal">${o.ship==='已出貨'?'已結清':money(o.bal)}</div></div>
-          <div><div class="k">代墊成本</div>
-               <div class="v" style="color:var(--soft)"><input value="${o.cost}"></div></div>
-        </div>
-        ${o.pays?`<div class="paynote">📋 共 ${o.pays} 筆收款，累計 ${money(o.payTotal)}</div>`:''}
-        ${shown.map(item).join('')}
-        ${rest>0?`<button class="more">▼ 展開其餘 ${rest} 項商品</button>`:''}
-      </div>
+      <div><div class="k">代墊成本</div>
+           <div class="v" style="color:var(--soft)"><input value="${o.cost}"></div></div>
+    </div>
+    ${o.pays?`<div class="paynote">📋 共 ${o.pays} 筆收款，累計 ${money(o.payTotal)}</div>`:''}
+    ${shown.map(item).join('')}
+    ${rest>0?`<button class="more">▼ 展開其餘 ${rest} 項商品</button>`:''}
 
-      <div>
-        <div class="side">
-          <div class="srow"><span class="lbl">📦 物流</span>
-            <input class="grow" value="${o.track}" placeholder="物流單號…">
-            ${o.track?'<a class="link" href="#">↗</a>':''}
-            <button class="btn p" style="flex:none;padding:8px 14px">🚚 出貨</button></div>
+    <div class="side">
+      <div class="srow"><span class="lbl">📦 物流</span>
+        <input class="grow" value="${o.track}" placeholder="物流單號…">
+        ${o.track?'<a class="link" href="#">↗</a>':''}
+        <button class="btn p" style="flex:none;padding:8px 14px">🚚 出貨</button></div>
 
-          <div class="srow"><span class="lbl">💰 收款</span>
-            <select class="grow"><option>匯款+賣貨便</option><option>VIP貨到付款</option>
-              <option>KOCA結帳</option><option>自取</option></select>
-            <select class="grow"><option>${o.recip}</option><option>Joya</option>
-              <option>Claudia</option><option>尚未收款</option></select>
-            <input style="width:70px" value="${o.last5}" placeholder="後5碼"></div>
+      <div class="srow"><span class="lbl">💰 收款</span>
+        <select class="grow"><option>匯款+賣貨便</option><option>VIP貨到付款</option>
+          <option>KOCA結帳</option><option>自取</option></select>
+        <select class="grow"><option>${o.recip}</option><option>Joya</option>
+          <option>Claudia</option><option>尚未收款</option></select>
+        <input style="width:70px" value="${o.last5}" placeholder="後5碼"></div>
 
-          <div class="srow"><span class="lbl">📝 備註</span>
-            <textarea rows="2" placeholder="新增備註…">${o.remark}</textarea></div>
-        </div>
-      </div>
+      <div class="srow"><span class="lbl">📝 備註</span>
+        <textarea rows="2" placeholder="新增備註…">${o.remark}</textarea></div>
     </div>
   </div>`;
 }
 
 document.getElementById('wrap').innerHTML = DATA.map(card).join('');
+document.addEventListener('click', e => {
+  if(!e.target.closest('.menu')) document.querySelectorAll('.menu.open').forEach(m => m.classList.remove('open'));
+});
 document.querySelectorAll('.more').forEach(b => b.onclick = () => {
   b.previousElementSibling.insertAdjacentHTML('afterend',
     item(DATA[1].items[3]));
