@@ -138,11 +138,19 @@
 </div>
 
 <script>
-// dev（改壞了要回頭就用這組）
+// ── Supabase 連線設定 ──────────────────────────────
+// 2026/08/27 Phase 1 完成，改連 prod。
+// dev 的留在下面註解裡 —— 萬一數字對不上要切回去比對，
+// 把註解換過來就好，不用再去翻設定頁。
+//
+// dev（cj-erp-dev）
 // const SB_URL = 'https://antwrezmnwxkgfofmbuh.supabase.co';
 // const SB_KEY = 'sb_publishable_-f1hpe2CtT5jokS6Nr7c9A_lwWKZvAa';
+//
+// ⚠️ 這裡只能放 publishable / anon key。
+//    service_role 那把絕對不能寫進網頁 —— 它等於整個資料庫的管理權。
 const SB_URL = 'https://nalolndgfwjqcmxypfnm.supabase.co';
-const SB_KEY = '（sb_publishable_HzOP3XNNJFyetKH5M2-gNw_cjFu9gBj）';
+const SB_KEY = 'sb_publishable_HzOP3XNNJFyetKH5M2-gNw_cjFu9gBj';
 const TOKEN_KEY = 'cj_sb_session';
 
 const $ = id => document.getElementById(id);
